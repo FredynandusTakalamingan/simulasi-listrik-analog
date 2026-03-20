@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulasi Ruang Kelas</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Nunito', sans-serif; }
+
+    .classroom-floor {
+      background: repeating-conic-gradient(#d4a574 0% 25%, #c9986a 0% 50%) 0 0 / 40px 40px;
+    }
+
+    .wall-bg {
+      background: linear-gradient(180deg, #e8dcc8 0%, #f0e6d4 40%, #e8dcc8 100%);
+    }
+
+    .blackboard {
+      background: linear-gradient(135deg, #1a3a2a 0%, #234d35 30%, #1a3a2a 70%, #0f2a1c 100%);
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.4), 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .blackboard-frame {
+      border: 8px solid #8B6914;
+      box-shadow: 0 0 0 2px #6B4F10, 0 6px 20px rgba(0,0,0,0.4);
+    }
+
+    .chalk-text {
+      color: rgba(255,255,255,0.85);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .desk-student {
+      background: linear-gradient(135deg, #b8860b, #d4a030, #b8860b);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+      border-radius: 4px;
+    }
+
+    .chair-student {
+      background: linear-gradient(135deg, #8B4513, #A0522D, #8B4513);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      border-radius: 3px;
+    }
+
+    .desk-teacher {
+      background: linear-gradient(135deg, #654321, #7B5B3A, #654321);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border-radius: 5px;
+    }
+
+    .lamp-on {
+      filter: drop-shadow(0 0 15px rgba(255, 220, 100, 0.9));
+    }
+
+    .lamp-glow {
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    .light-cone {
+      background: radial-gradient(ellipse at top, rgba(255,220,100,0.18) 0%, rgba(255,220,100,0.05) 50%, transparent 70%);
+    }
+
+    .clock-face {
+      background: radial-gradient(circle, #fff 0%, #f5f0e6 80%, #e8e0d0 100%);
+      box-shadow: 0 0 0 3px #8B6914, 0 0 0 5px #6B4F10, 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .panel-card {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .switch-track {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      transition: background-color 0.3s;
+      cursor: pointer;
+    }
+
+    .switch-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: transform 0.3s;
+    }
+
+    .tab-active {
+      background: #1a3a2a;
+      color: white;
+    }
+
+    .tab-inactive {
+      background: #e8dcc8;
+      color: #5a4a3a;
+    }
+
+    .result-card {
+      background: linear-gradient(135deg, #1a3a2a, #234d35);
+      color: white;
+    }
+
+    .input-field {
+      border: 2px solid #d4c5a9;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+      width: 100%;
+      transition: border-color 0.2s;
+      outline: none;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    .input-field:focus {
+      border-color: #8B6914;
+    }
+
+    .clock-hand {
+      transform-origin: 50% 100%;
+    }
+
+    .scroll-panel::-webkit-scrollbar { width: 6px; }
+    .scroll-panel::-webkit-scrollbar-track { background: transparent; }
+    .scroll-panel::-webkit-scrollbar-thumb { background: #c9b896; border-radius: 3px; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in { animation: fadeInUp 0.5s ease-out forwards; }
+    .animate-in-d1 { animation: fadeInUp 0.5s ease-out 0.1s forwards; opacity: 0; }
+    .animate-in-d2 { animation: fadeInUp 0.5s ease-out 0.2s forwards; opacity: 0; }
+    .animate-in-d3 { animation: fadeInUp 0.5s ease-out 0.3s forwards; opacity: 0; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-[#2a2218] overflow-auto">
+  <div id="app" class="h-full w-full flex flex-col lg:flex-row"><!-- Classroom Visual -->
+   <div class="lg:w-[58%] w-full flex flex-col" style="min-height: 500px;"><!-- Header -->
+    <div class="bg-[#1a3a2a] px-4 py-3 flex items-center gap-3 animate-in">
+     <div class="w-9 h-9 rounded-lg bg-[#8B6914] flex items-center justify-center"><i data-lucide="school" class="w-5 h-5 text-white"></i>
+     </div>
+     <div>
+      <h1 id="classroomTitle" class="text-white font-extrabold text-lg leading-tight">Ruang Kelas 7A</h1>
+      <p class="text-[#a0c4a8] text-xs">Simulasi Kelistrikan</p>
+     </div>
+    </div><!-- Classroom Scene -->
+    <div class="flex-1 wall-bg relative overflow-hidden animate-in-d1"><!-- Wall decorations -->
+     <div class="absolute top-2 left-3 w-16 h-10 bg-[#d4a574] rounded border-2 border-[#8B6914] flex items-center justify-center"><span class="text-[8px] font-bold text-[#5a3a1a]">PANCASILA</span>
+     </div>
+     <div class="absolute top-2 right-3 w-16 h-10 bg-[#d4a574] rounded border-2 border-[#8B6914] flex items-center justify-center"><span class="text-[8px] font-bold text-[#5a3a1a]">JADWAL</span>
+     </div><!-- Clock -->
+     <div class="absolute top-3 right-24">
+      <div class="clock-face w-14 h-14 rounded-full relative flex items-center justify-center">
+       <div class="absolute w-1.5 h-1.5 bg-[#333] rounded-full z-10"></div><!-- Hour markers -->
+       <div class="absolute w-0.5 h-1.5 bg-[#333] top-1 left-1/2 -translate-x-1/2"></div>
+       <div class="absolute w-0.5 h-1.5 bg-[#333] bottom-1 left-1/2 -translate-x-1/2"></div>
+       <div class="absolute h-0.5 w-1.5 bg-[#333] left-1 top-1/2 -translate-y-1/2"></div>
+       <div class="absolute h-0.5 w-1.5 bg-[#333] right-1 top-1/2 -translate-y-1/2"></div><!-- Hands -->
+       <div id="hourHand" class="absolute w-[3px] h-[14px] bg-[#333] rounded-full" style="bottom: 50%; left: calc(50% - 1.5px); transform-origin: bottom center;"></div>
+       <div id="minuteHand" class="absolute w-[2px] h-[18px] bg-[#555] rounded-full" style="bottom: 50%; left: calc(50% - 1px); transform-origin: bottom center;"></div>
+       <div id="secondHand" class="absolute w-[1px] h-[20px] bg-red-500 rounded-full" style="bottom: 50%; left: calc(50% - 0.5px); transform-origin: bottom center;"></div>
+      </div>
+     </div><!-- Lamps on wall -->
+     <div id="lampVisuals" class="absolute top-0 left-0 w-full flex justify-around px-8 pt-0 pointer-events-none"><!-- Generated by JS -->
+     </div><!-- Blackboard -->
+     <div class="absolute top-16 left-1/2 -translate-x-1/2 w-[70%] max-w-[340px]">
+      <div class="blackboard-frame rounded-lg">
+       <div class="blackboard rounded p-4 min-h-[80px] flex flex-col justify-center items-center">
+        <p class="chalk-text text-sm font-bold">📐 Pelajaran Hari Ini</p>
+        <p class="chalk-text text-xs mt-1 opacity-70">Simulasi Kelistrikan Ruang Kelas</p>
+       </div>
+      </div><!-- Chalk tray -->
+      <div class="bg-[#6B4F10] h-3 w-[85%] mx-auto rounded-b flex items-center justify-center gap-3 px-2">
+       <div class="w-6 h-1.5 bg-white rounded-sm opacity-80"></div>
+       <div class="w-5 h-1.5 bg-yellow-200 rounded-sm opacity-80"></div>
+       <div class="w-4 h-1.5 bg-blue-200 rounded-sm opacity-80"></div>
+      </div>
+     </div><!-- Teacher desk -->
+     <div class="absolute bottom-[38%] left-1/2 -translate-x-1/2">
+      <div class="desk-teacher w-28 h-8 flex items-center justify-center"><span class="text-[7px] text-amber-200 font-bold opacity-60">MEJA GURU</span>
+      </div>
+      <div class="chair-student w-10 h-6 mx-auto mt-1"></div>
+     </div><!-- Student desks - 3 rows x 3 cols -->
+     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 w-[85%] max-w-[360px]">
+      <div class="grid grid-cols-3 gap-x-6 gap-y-3">
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+       <div class="flex flex-col items-center" data-desk>
+        <div class="desk-student w-16 h-6"></div>
+        <div class="chair-student w-7 h-5 mt-1"></div>
+       </div>
+      </div>
+     </div><!-- Floor section -->
+     <div class="absolute bottom-0 left-0 w-full h-[15%] classroom-floor opacity-40"></div>
+    </div>
+   </div><!-- Control Panel -->
+   <div class="lg:w-[42%] w-full bg-[#f5efe3] flex flex-col overflow-hidden" style="min-height:400px;"><!-- Tabs -->
+    <div class="flex p-3 gap-2 animate-in-d2"><button onclick="switchTab('lamps')" id="tabLamps" class="tab-active flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5"> <i data-lucide="lightbulb" class="w-4 h-4"></i> Lampu </button> <button onclick="switchTab('calc')" id="tabCalc" class="tab-inactive flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5"> <i data-lucide="calculator" class="w-4 h-4"></i> Hitung Biaya </button>
+    </div><!-- Lamp Controls -->
+    <div id="panelLamps" class="flex-1 overflow-auto scroll-panel px-3 pb-3 animate-in-d3">
+     <div id="lampControls" class="space-y-3"><!-- Generated by JS -->
+     </div>
+    </div><!-- Calculator Panel -->
+    <div id="panelCalc" class="flex-1 overflow-auto scroll-panel px-3 pb-3 hidden animate-in-d3"><!-- Tariff Selection -->
+     <div class="panel-card rounded-xl p-4 mb-3">
+      <h3 class="font-extrabold text-[#1a3a2a] text-sm mb-3 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-[#8B6914]"></i> Tarif Listrik PLN</h3>
+      <div class="space-y-2" id="tariffOptions"><label class="flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-[#1a3a2a] bg-[#f0f8f2]" data-tariff="415"> <input type="radio" name="tariff" value="415" checked class="accent-[#1a3a2a]">
+        <div>
+         <p class="text-xs font-bold text-[#1a3a2a]">R-1 Subsidi 450 VA</p>
+         <p class="text-[10px] text-[#6a5a4a]">Rp 415/kWh</p>
+        </div></label> <label class="flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-transparent hover:border-[#d4c5a9]" data-tariff="605"> <input type="radio" name="tariff" value="605" class="accent-[#1a3a2a]">
+        <div>
+         <p class="text-xs font-bold text-[#1a3a2a]">R-1 Subsidi 900 VA</p>
+         <p class="text-[10px] text-[#6a5a4a]">Rp 605/kWh</p>
+        </div></label> <label class="flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-transparent hover:border-[#d4c5a9]" data-tariff="1352"> <input type="radio" name="tariff" value="1352" class="accent-[#1a3a2a]">
+        <div>
+         <p class="text-xs font-bold text-[#1a3a2a]">R-1 Non-Subsidi 900 VA</p>
+         <p class="text-[10px] text-[#6a5a4a]">Rp 1.352/kWh</p>
+        </div></label> <label class="flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-transparent hover:border-[#d4c5a9]" data-tariff="1444.70"> <input type="radio" name="tariff" value="1444.70" class="accent-[#1a3a2a]">
+        <div>
+         <p class="text-xs font-bold text-[#1a3a2a]">R-1 Non-Subsidi 1.300-2.200 VA</p>
+         <p class="text-[10px] text-[#6a5a4a]">Rp 1.444,70/kWh</p>
+        </div></label> <label class="flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-transparent hover:border-[#d4c5a9]" data-tariff="1699.53"> <input type="radio" name="tariff" value="1699.53" class="accent-[#1a3a2a]">
+        <div>
+         <p class="text-xs font-bold text-[#1a3a2a]">R-2/R-3 ≥ 3.500 VA</p>
+         <p class="text-[10px] text-[#6a5a4a]">Rp 1.699,53/kWh</p>
+        </div></label>
+      </div>
+     </div><!-- Results -->
+     <div id="calcResults" class="space-y-3"><!-- Daily -->
+      <div class="result-card rounded-xl p-4">
+       <div class="flex items-center justify-between mb-2"><span class="text-xs opacity-80 flex items-center gap-1.5"><i data-lucide="sun" class="w-3.5 h-3.5"></i> Daya Harian</span> <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">Per Hari</span>
+       </div>
+       <p id="dailyWh" class="text-2xl font-black">0 <span class="text-sm font-bold opacity-70">Wh</span></p>
+       <p id="dailyCost" class="text-sm font-bold text-[#a0c4a8] mt-1">Rp 0</p>
+      </div><!-- Monthly -->
+      <div class="result-card rounded-xl p-4" style="background: linear-gradient(135deg, #8B6914, #b8860b);">
+       <div class="flex items-center justify-between mb-2"><span class="text-xs opacity-80 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Daya Bulanan</span> <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">30 Hari</span>
+       </div>
+       <p id="monthlyKwh" class="text-2xl font-black">0 <span class="text-sm font-bold opacity-70">kWh</span></p>
+       <p id="monthlyCost" class="text-lg font-extrabold text-yellow-100 mt-1">Rp 0</p>
+      </div><!-- Summary table -->
+      <div class="panel-card rounded-xl p-4">
+       <h3 class="font-extrabold text-[#1a3a2a] text-sm mb-3 flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4 text-[#8B6914]"></i> Rincian Per Lampu</h3>
+       <div id="summaryTable" class="space-y-2 text-xs"><!-- Generated by JS -->
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Lamp data
+    const lamps = [
+      { id: 1, name: 'Lampu Depan Kiri', emoji: '💡', on: true, watt: 20, hours: 8 },
+      { id: 2, name: 'Lampu Depan Tengah', emoji: '💡', on: true, watt: 20, hours: 8 },
+      { id: 3, name: 'Lampu Depan Kanan', emoji: '💡', on: true, watt: 20, hours: 8 },
+      { id: 4, name: 'Lampu Belakang Kiri', emoji: '💡', on: false, watt: 15, hours: 6 },
+      { id: 5, name: 'Lampu Belakang Kanan', emoji: '💡', on: false, watt: 15, hours: 6 },
+    ];
+
+    let selectedTariff = 415;
+    let currentTab = 'lamps';
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      const s = now.getSeconds();
+      const m = now.getMinutes();
+      const h = now.getHours() % 12;
+      document.getElementById('secondHand').style.transform = `rotate(${s * 6}deg)`;
+      document.getElementById('minuteHand').style.transform = `rotate(${m * 6 + s * 0.1}deg)`;
+      document.getElementById('hourHand').style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Tabs
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('panelLamps').classList.toggle('hidden', tab !== 'lamps');
+      document.getElementById('panelCalc').classList.toggle('hidden', tab !== 'calc');
+      document.getElementById('tabLamps').className = tab === 'lamps' ? 'tab-active flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5' : 'tab-inactive flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5';
+      document.getElementById('tabCalc').className = tab === 'calc' ? 'tab-active flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5' : 'tab-inactive flex-1 py-2 px-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5';
+      if (tab === 'calc') calculateCosts();
+    }
+
+    // Tariff selection
+    document.querySelectorAll('input[name="tariff"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        selectedTariff = parseFloat(e.target.value);
+        document.querySelectorAll('[data-tariff]').forEach(label => {
+          const val = label.dataset.tariff;
+          if (parseFloat(val) === selectedTariff) {
+            label.className = 'flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-[#1a3a2a] bg-[#f0f8f2]';
+          } else {
+            label.className = 'flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all border-transparent hover:border-[#d4c5a9]';
+          }
+        });
+        calculateCosts();
+      });
+    });
+
+    // Render lamp visuals on classroom
+    function renderLampVisuals() {
+      const container = document.getElementById('lampVisuals');
+      container.innerHTML = '';
+      lamps.forEach((lamp) => {
+        const div = document.createElement('div');
+        div.className = 'flex flex-col items-center';
+        div.id = `lampVis_${lamp.id}`;
+        const isOn = lamp.on;
+        div.innerHTML = `
+          <div class="relative">
+            <div class="w-8 h-4 bg-[#555] rounded-b-full mx-auto" style="border-top: 3px solid #777;"></div>
+            <div class="w-2 h-3 bg-[#666] mx-auto"></div>
+            <div class="text-2xl text-center ${isOn ? 'lamp-on lamp-glow' : 'opacity-40'}" style="line-height:1;">${isOn ? '💡' : '🔌'}</div>
+            ${isOn ? `<div class="light-cone absolute top-full left-1/2 -translate-x-1/2 w-24 h-32 pointer-events-none"></div>` : ''}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Render lamp control cards
+    function renderLampControls() {
+      const container = document.getElementById('lampControls');
+      container.innerHTML = '';
+      lamps.forEach((lamp, idx) => {
+        const card = document.createElement('div');
+        card.className = 'panel-card rounded-xl p-4';
+        card.id = `lampCard_${lamp.id}`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">${lamp.on ? '💡' : '🔌'}</span>
+              <div>
+                <p class="font-bold text-sm text-[#1a3a2a]">${lamp.name}</p>
+                <p class="text-[10px] text-[#8a7a6a]">${lamp.on ? '✅ Menyala' : '⛔ Mati'}</p>
+              </div>
+            </div>
+            <div class="switch-track ${lamp.on ? 'bg-[#1a3a2a]' : 'bg-[#ccc]'}" onclick="toggleLamp(${lamp.id})">
+              <div class="switch-thumb" style="transform: translateX(${lamp.on ? '20px' : '2px'}) translateY(2px);"></div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 ${lamp.on ? '' : 'opacity-40 pointer-events-none'}">
+            <div>
+              <label class="text-[10px] font-bold text-[#6a5a4a] block mb-1">⚡ Daya (Watt)</label>
+              <input type="number" class="input-field text-sm" value="${lamp.watt}" min="1" max="1000" onchange="updateLamp(${lamp.id}, 'watt', this.value)">
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-[#6a5a4a] block mb-1">🕐 Durasi (Jam/Hari)</label>
+              <input type="number" class="input-field text-sm" value="${lamp.hours}" min="0" max="24" step="0.5" onchange="updateLamp(${lamp.id}, 'hours', this.value)">
+            </div>
+          </div>
+          ${lamp.on ? `<div class="mt-2 text-[10px] text-[#6a5a4a] bg-[#f5efe3] rounded-lg px-3 py-1.5">Konsumsi: <strong class="text-[#1a3a2a]">${(lamp.watt * lamp.hours).toLocaleString('id-ID')} Wh/hari</strong></div>` : ''}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleLamp(id) {
+      const lamp = lamps.find(l => l.id === id);
+      if (lamp) {
+        lamp.on = !lamp.on;
+        renderLampControls();
+        renderLampVisuals();
+        if (currentTab === 'calc') calculateCosts();
+      }
+    }
+
+    function updateLamp(id, field, value) {
+      const lamp = lamps.find(l => l.id === id);
+      if (lamp) {
+        lamp[field] = parseFloat(value) || 0;
+        renderLampControls();
+        if (currentTab === 'calc') calculateCosts();
+      }
+    }
+
+    // Cost calculation
+    function calculateCosts() {
+      let totalDailyWh = 0;
+      const summaryContainer = document.getElementById('summaryTable');
+      summaryContainer.innerHTML = '';
+
+      lamps.forEach(lamp => {
+        const dailyWh = lamp.on ? lamp.watt * lamp.hours : 0;
+        totalDailyWh += dailyWh;
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between py-2 border-b border-[#e8dcc8] last:border-0';
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span>${lamp.on ? '💡' : '🔌'}</span>
+            <span class="font-semibold text-[#1a3a2a]">${lamp.name}</span>
+          </div>
+          <div class="text-right">
+            <span class="font-bold text-[#1a3a2a]">${dailyWh.toLocaleString('id-ID')} Wh</span>
+            <span class="text-[#8a7a6a] ml-1">(${lamp.watt}W × ${lamp.hours}j)</span>
+          </div>
+        `;
+        summaryContainer.appendChild(row);
+      });
+
+      const totalMonthlyWh = totalDailyWh * 30;
+      const totalMonthlyKwh = totalMonthlyWh / 1000;
+      const dailyCost = (totalDailyWh / 1000) * selectedTariff;
+      const monthlyCost = totalMonthlyKwh * selectedTariff;
+
+      document.getElementById('dailyWh').innerHTML = `${totalDailyWh.toLocaleString('id-ID')} <span class="text-sm font-bold opacity-70">Wh</span>`;
+      document.getElementById('dailyCost').textContent = `Rp ${Math.round(dailyCost).toLocaleString('id-ID')}`;
+      document.getElementById('monthlyKwh').innerHTML = `${totalMonthlyKwh.toLocaleString('id-ID', { maximumFractionDigits: 2 })} <span class="text-sm font-bold opacity-70">kWh</span>`;
+      document.getElementById('monthlyCost').textContent = `Rp ${Math.round(monthlyCost).toLocaleString('id-ID')}`;
+    }
+
+    function formatRp(num) {
+      return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+    }
+
+    // Initial render
+    renderLampControls();
+    renderLampVisuals();
+    calculateCosts();
+    lucide.createIcons();
+
+    // Element SDK
+    const defaultConfig = {
+      classroom_name: 'Ruang Kelas 7A',
+      background_color: '#1a3a2a',
+      surface_color: '#f5efe3',
+      text_color: '#1a3a2a',
+      accent_color: '#8B6914',
+      secondary_action_color: '#a0c4a8',
+      font_family: 'Nunito',
+      font_size: 16
+    };
+
+    function applyConfig(config) {
+      const c = { ...defaultConfig, ...config };
+
+      // Title
+      const titleEl = document.getElementById('classroomTitle');
+      if (titleEl) titleEl.textContent = c.classroom_name;
+
+      // Colors
+      const header = document.querySelector('.bg-\\[\\#1a3a2a\\]');
+      if (header) header.style.backgroundColor = c.background_color;
+
+      document.querySelectorAll('.result-card').forEach((el, i) => {
+        if (i === 0) el.style.background = `linear-gradient(135deg, ${c.background_color}, ${c.background_color}dd)`;
+      });
+
+      document.querySelectorAll('.tab-active').forEach(el => {
+        el.style.backgroundColor = c.background_color;
+      });
+
+      const panel = document.querySelector('.lg\\:w-\\[42\\%\\]');
+      if (panel) panel.style.backgroundColor = c.surface_color;
+
+      document.querySelectorAll('.font-bold.text-sm.text-\\[\\#1a3a2a\\], .font-extrabold.text-\\[\\#1a3a2a\\]').forEach(el => {
+        el.style.color = c.text_color;
+      });
+
+      // Font
+      const font = c.font_family || defaultConfig.font_family;
+      const baseSize = c.font_size || defaultConfig.font_size;
+      document.body.style.fontFamily = `${font}, Nunito, sans-serif`;
+      if (titleEl) titleEl.style.fontSize = `${baseSize * 1.15}px`;
+    }
+
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => { applyConfig(config); },
+      mapToCapabilities: (config) => ({
+        recolorables: [
+          { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+          { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+          { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+          { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+          { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: (v) => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } },
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => config.font_family || defaultConfig.font_family,
+          set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+        },
+        fontSizeable: {
+          get: () => config.font_size || defaultConfig.font_size,
+          set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+        }
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['classroom_name', config.classroom_name || defaultConfig.classroom_name]
+      ])
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9deb899285e09d0b',t:'MTc3MzkxMzQ1NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
